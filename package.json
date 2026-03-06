@@ -3,7 +3,7 @@
   "displayName": "AI Climate Impact",
   "description": "Estimates and displays the CO₂ impact of your AI prompts in the status bar. Works with Cursor hooks to track energy consumption per model.",
   "version": "0.1.0",
-  "publisher": "kplum6",
+  "publisher": "kellyp",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
