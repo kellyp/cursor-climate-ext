@@ -1,0 +1,41 @@
+{
+  "name": "ai-climate-impact",
+  "displayName": "AI Climate Impact",
+  "description": "Estimates and displays the CO₂ impact of your AI prompts in the status bar. Works with Cursor hooks to track energy consumption per model.",
+  "version": "0.1.0",
+  "publisher": "kplum6",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "keywords": ["ai", "climate", "carbon", "co2", "sustainability", "cursor", "hooks"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiClimate.showDetails",
+        "title": "AI Climate: Show Impact Details"
+      },
+      {
+        "command": "aiClimate.reset",
+        "title": "AI Climate: Reset Stats"
+      },
+      {
+        "command": "aiClimate.installHooks",
+        "title": "AI Climate: Install/Update Hooks"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "vsce package --allow-missing-repository"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3"
+  }
+}

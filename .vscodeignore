@@ -1,0 +1,13 @@
+# Build artifacts
+*.vsix
+
+# Standalone hook files (embedded in extension.js)
+hooks/
+hooks.json
+
+# Dev / repo files
+.git/
+.gitignore
+node_modules/
+package-lock.json
+.vscode/
