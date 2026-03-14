@@ -49,7 +49,10 @@ Per 1,000 tokens (input + output):
 
 Carbon intensity: 390 gCO₂/kWh (US average; cloud providers may be lower with renewables).
 
-Sources: Luccioni et al. 2023, IEA 2024.
+## References
+
+- **Energy / CO₂:** Luccioni et al. 2023; IEA 2024; Strubell et al. 2019 (token/energy estimates).
+- **Water (when enabled):** Li, P., Yang, J., Islam, M. A., Ren, S. — “Making AI Less ‘Thirsty’: Uncovering and Addressing the Secret Water Footprint of AI Models.” arXiv:2304.03271 (2023; rev. 2025). [arXiv](https://arxiv.org/abs/2304.03271). ChatGPT water footprint (per-query estimates by location): [research](https://jhviw.github.io/chatgpt-water-footprint/research.html). Data center water use variation: *Resources, Conservation & Recycling* (2025), e.g. [Colab](https://colab.ws/articles/10.1016%2Fj.resconrec.2025.108310).
 
 ## Data
 

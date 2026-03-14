@@ -40,6 +40,10 @@ ENERGY_WH_PER_1K_TOKENS = {
 # Conservative; cloud providers often use partial renewables.
 CARBON_INTENSITY_G_PER_KWH = 390
 
+# Water per request (mL). Option B: token/request-based estimate.
+# Li et al. "Making AI Less Thirsty" (arXiv:2304.03271): ~10–25 mL/query; ChatGPT water footprint: ~15–30 mL/query by location.
+WATER_ML_PER_REQUEST = 15
+
 LOG_DIR = Path.home() / ".cursor" / "hooks" / "climate-logs"
 LOG_FILE = LOG_DIR / "impact.jsonl"
 CUMULATIVE_FILE = LOG_DIR / "cumulative.json"
@@ -63,6 +67,7 @@ DEFAULT_CUMULATIVE = {
     "total_tokens": 0,
     "total_wh": 0.0,
     "total_gco2": 0.0,
+    "total_water_l": 0.0,
     "request_count": 0,
     "last_precompact_context": 0,
     "last_estimate": 0,
@@ -78,6 +83,10 @@ def load_cumulative() -> dict:
         data = json.loads(CUMULATIVE_FILE.read_text())
         for k, v in DEFAULT_CUMULATIVE.items():
             data.setdefault(k, v)
+        # One-time backfill: pre-upgrade cumulative had no total_water_l; estimate from request_count.
+        if data["total_water_l"] == 0 and data["request_count"] > 0:
+            data["total_water_l"] = data["request_count"] * (WATER_ML_PER_REQUEST / 1000.0)
+            save_cumulative(data)
         return data
     except (FileNotFoundError, json.JSONDecodeError):
         return dict(DEFAULT_CUMULATIVE)
@@ -207,9 +216,11 @@ def handle_before_submit(payload: dict) -> dict:
     energy_wh = (estimated_total / 1000) * rate
     gco2 = (energy_wh / 1000) * CARBON_INTENSITY_G_PER_KWH
 
+    water_l = WATER_ML_PER_REQUEST / 1000.0
     cum["total_tokens"] += estimated_total
     cum["total_wh"] += energy_wh
     cum["total_gco2"] += gco2
+    cum["total_water_l"] = cum.get("total_water_l", 0.0) + water_l
     cum["request_count"] += 1
     cum["last_estimate"] = estimated_total
     cum["last_model"] = model
@@ -227,6 +238,7 @@ def handle_before_submit(payload: dict) -> dict:
         "estimated_total_tokens": estimated_total,
         "energy_wh": round(energy_wh, 6),
         "gco2": round(gco2, 4),
+        "water_l": round(water_l, 6),
         "conversation_id": payload.get("conversation_id", ""),
     })
     return {"continue": True}

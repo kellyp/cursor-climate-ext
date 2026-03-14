@@ -150,7 +150,19 @@ function updateStatusBar() {
     tokenDisplay = `${(tokens / 1_000_000).toFixed(2)}M`;
   }
 
-  statusBarItem.text = `$(globe) ${co2Display} \u00b7 ~${tokenDisplay} tokens \u00b7 ${data.request_count} reqs`;
+  const waterL = data.total_water_l ?? 0;
+  let waterDisplay;
+  if (waterL < 0.001) {
+    waterDisplay = "< 1 mL";
+  } else if (waterL < 1) {
+    waterDisplay = `${(waterL * 1000).toFixed(0)} mL`;
+  } else if (waterL < 1000) {
+    waterDisplay = `${waterL.toFixed(2)} L`;
+  } else {
+    waterDisplay = `${(waterL / 1000).toFixed(2)}k L`;
+  }
+
+  statusBarItem.text = `$(globe) ${co2Display} \u00b7 ~${tokenDisplay} tokens \u00b7 ${waterDisplay} water \u00b7 ${data.request_count} reqs`;
 
   if (gco2 < 10) {
     statusBarItem.backgroundColor = new vscode.ThemeColor(
@@ -186,16 +198,27 @@ function showDetails() {
   const pcCount = data.precompact_count || 0;
   const baseCtx = data.last_precompact_context || 0;
 
+  const waterL = data.total_water_l ?? 0;
+  const waterStr =
+    waterL < 1
+      ? `${(waterL * 1000).toFixed(0)} mL`
+      : `${waterL.toFixed(2)} L`;
+  const bottles = waterL >= 0.5 ? (waterL / 0.5).toFixed(0) : "0";
+
   const msg = [
     `Requests: ${data.request_count}`,
     `Tokens: ~${data.total_tokens.toLocaleString()}`,
     `Energy: ${(data.total_wh * 1000).toFixed(1)} mWh`,
     `CO\u2082: ${gco2.toFixed(2)} g`,
+    `Water: ${waterStr}`,
     pcCount > 0 ? `Base ctx: ${(baseCtx / 1000).toFixed(1)}K (${pcCount} samples)` : `Base ctx: 5K (default)`,
     `\u2248 ${mDriven} m driven`,
     `\u2248 ${charges} phone charges`,
     `\u2248 ${ledMin} min LED`,
-  ].join("  \u00b7  ");
+    bottles !== "0" ? `\u2248 ${bottles} 500 mL bottles` : null,
+  ]
+    .filter(Boolean)
+    .join("  \u00b7  ");
 
   vscode.window.showInformationMessage(msg, "Reset").then((choice) => {
     if (choice === "Reset") resetStats();
@@ -218,6 +241,7 @@ function resetStats() {
           total_tokens: 0,
           total_wh: 0,
           total_gco2: 0,
+          total_water_l: 0,
           request_count: 0,
           last_precompact_context: lastBase,
           last_estimate: 0,
@@ -284,6 +308,9 @@ ENERGY_WH_PER_1K_TOKENS = {
 
 CARBON_INTENSITY_G_PER_KWH = 390
 
+# Water per request (mL). Li et al. arXiv:2304.03271: ~10–25 mL/query; ChatGPT water footprint: ~15–30 mL/query.
+WATER_ML_PER_REQUEST = 15
+
 LOG_DIR = Path.home() / ".cursor" / "hooks" / "climate-logs"
 LOG_FILE = LOG_DIR / "impact.jsonl"
 CUMULATIVE_FILE = LOG_DIR / "cumulative.json"
@@ -293,6 +320,7 @@ DEFAULT_CUMULATIVE = {
     "total_tokens": 0,
     "total_wh": 0.0,
     "total_gco2": 0.0,
+    "total_water_l": 0.0,
     "request_count": 0,
     "last_precompact_context": 0,
     "last_estimate": 0,
@@ -320,6 +348,10 @@ def load_cumulative():
         data = json.loads(CUMULATIVE_FILE.read_text())
         for k, v in DEFAULT_CUMULATIVE.items():
             data.setdefault(k, v)
+        # One-time backfill: pre-upgrade cumulative had no total_water_l; estimate from request_count.
+        if data["total_water_l"] == 0 and data["request_count"] > 0:
+            data["total_water_l"] = data["request_count"] * (WATER_ML_PER_REQUEST / 1000.0)
+            save_cumulative(data)
         return data
     except (FileNotFoundError, json.JSONDecodeError):
         return dict(DEFAULT_CUMULATIVE)
@@ -418,9 +450,11 @@ def handle_before_submit(payload):
     energy_wh = (estimated_total / 1000) * rate
     gco2 = (energy_wh / 1000) * CARBON_INTENSITY_G_PER_KWH
 
+    water_l = WATER_ML_PER_REQUEST / 1000.0
     cum["total_tokens"] += estimated_total
     cum["total_wh"] += energy_wh
     cum["total_gco2"] += gco2
+    cum["total_water_l"] = cum.get("total_water_l", 0.0) + water_l
     cum["request_count"] += 1
     cum["last_estimate"] = estimated_total
     cum["last_model"] = model
@@ -438,6 +472,7 @@ def handle_before_submit(payload):
         "estimated_total_tokens": estimated_total,
         "energy_wh": round(energy_wh, 6),
         "gco2": round(gco2, 4),
+        "water_l": round(water_l, 6),
         "conversation_id": payload.get("conversation_id", ""),
     })
     return {"continue": True}
