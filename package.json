@@ -2,7 +2,7 @@
   "name": "ai-climate-impact",
   "displayName": "AI Climate Impact",
   "description": "Estimates and displays the CO₂ and water consumption impact of your AI prompts in the status bar. Works with Cursor hooks to track energy consumption per model.",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "publisher": "kellyp",
   "license": "MIT",
   "engines": {
@@ -13,10 +13,41 @@
   "activationEvents": ["onStartupFinished"],
   "main": "./extension.js",
   "contributes": {
+    "configuration": {
+      "title": "AI Climate Impact",
+      "properties": {
+        "aiClimate.heatMapGreenMax": {
+          "type": "number",
+          "default": null,
+          "description": "Fixed gCO2 upper bound for green (low). If set with heatMapYellowMax, overrides percentile-based thresholds."
+        },
+        "aiClimate.heatMapYellowMax": {
+          "type": "number",
+          "default": null,
+          "description": "Fixed gCO2 upper bound for yellow (medium). Red = above this. Used only if heatMapGreenMax is also set."
+        },
+        "aiClimate.resetStatsOnNewMonth": {
+          "type": "boolean",
+          "default": false,
+          "description": "When enabled, cumulative status-bar totals (CO₂, water, tokens, request count) reset automatically at the start of each calendar month. Per-day impact logs are not cleared."
+        },
+        "aiClimate.heatMapHistoryMonths": {
+          "type": "number",
+          "default": 12,
+          "minimum": 1,
+          "maximum": 36,
+          "description": "How many past months you can step through in the heat map (including the current month). Older months are not shown."
+        }
+      }
+    },
     "commands": [
       {
         "command": "aiClimate.showDetails",
         "title": "AI Climate: Show Climate Impact Details"
+      },
+      {
+        "command": "aiClimate.showHeatMap",
+        "title": "AI Climate: Show CO2 heat map"
       },
       {
         "command": "aiClimate.reset",
